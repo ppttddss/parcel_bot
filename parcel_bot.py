@@ -5,7 +5,7 @@ import os
 
 st.set_page_config(page_title="Insurance Grok", layout="wide")
 
-# Force dark theme - black background, white text
+# Force pure black everywhere, especially input area
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600&display=swap');
@@ -27,7 +27,7 @@ st.markdown("""
         margin-bottom: 0.6rem !important;
     }
     .subtitle {
-        color: #cccccc !important;
+        color: #bbbbbb !important;
         text-align: center !important;
         font-size: 0.95rem !important;
         margin-bottom: 1.8rem !important;
@@ -37,7 +37,8 @@ st.markdown("""
         padding: 12px 16px !important;
         margin: 0.9rem 0 !important;
         max-width: 78% !important;
-        border: 1px solid #333333 !important;
+        border: 1px solid #222222 !important;
+        background: #111111 !important;
     }
     .user .stChatMessage {
         background: #1a3c6e !important;
@@ -48,25 +49,35 @@ st.markdown("""
         background: #1e1e1e !important;
         color: #e0e0e0 !important;
     }
-    .stChatInput > div > div {
-        background: #111111 !important;
-        border: 1px solid #444444 !important;
+    /* Target input container, remove grey, force black */
+    .stChatInput, 
+    .stChatInput > div, 
+    .stChatInput > div > div,
+    .stChatInput > div > div > div {
+        background: #000000 !important;
+        border: 1px solid #333333 !important;
         border-radius: 999px !important;
-        padding: 0.4rem 1rem !important;
-        color: #ffffff !important;
+        padding: 0.3rem 0.8rem !important;
+        box-shadow: none !important;
     }
     .stChatInput input {
         color: #ffffff !important;
-        background: transparent !important;
+        background: #000000 !important;
+        caret-color: #ffffff !important;
     }
-    .stChatInput button {
-        background: #1a3c6e !important;
+    .stChatInput input::placeholder {
+        color: #777777 !important;
+    }
+    .stChatInput button,
+    .stChatInput button > div,
+    .stChatInput button svg {
+        background: #000000 !important;
         color: #ffffff !important;
         border: none !important;
-        border-radius: 50% !important;
-        width: 42px !important;
-        height: 42px !important;
-        margin-left: 8px !important;
+        fill: #ffffff !important;
+    }
+    .stChatInput button:hover {
+        background: #111111 !important;
     }
     .placeholder {
         text-align: center;
@@ -80,8 +91,9 @@ st.markdown("""
         text-align: center !important;
         margin-top: 3rem !important;
     }
-    footer { visibility: hidden !important; }
-    header, section[data-testid="stSidebar"] { display: none !important; }
+    footer, header, section[data-testid="stSidebar"] {
+        display: none !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -95,7 +107,7 @@ if not api_key:
     st.error("Missing API key — set XAI_API_KEY in secrets.")
     st.stop()
 
-# Memory handling
+# Memory
 MEMORY_FILE = "memory.json"
 
 def load_memory():
@@ -123,19 +135,19 @@ if not st.session_state.messages:
 if "current_session" not in st.session_state:
     st.session_state.current_session = []
 
-# Sidebar toggle (hidden if you prefer — can remove this block)
+# Optional sidebar toggle
 with st.sidebar:
     st.checkbox("Show recent 20 messages", key="show_hist", value=False)
 
-# Display messages
-display_msgs = st.session_state.messages[-20:] if st.session_state.get("show_hist", False) else []
-display_msgs += st.session_state.current_session
+# Messages
+display = st.session_state.messages[-20:] if st.session_state.get("show_hist", False) else []
+display += st.session_state.current_session
 
-for msg in display_msgs:
+for msg in display:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-if not display_msgs:
+if not display:
     st.markdown("""
         <div class="placeholder">
             Ready when you are<br>
@@ -143,7 +155,7 @@ if not display_msgs:
         </div>
     """, unsafe_allow_html=True)
 
-# Chat input
+# Input handling
 if prompt := st.chat_input("Ask Insurance Grok…"):
     user_msg = {"role": "user", "content": prompt}
     st.session_state.messages.append(user_msg)
