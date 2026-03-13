@@ -62,9 +62,9 @@ st.markdown("""
         border: none !important;
         border-radius: 8px !important;
         box-shadow: none !important;
-        padding: 0.8rem 1.2rem !important;
-        font-size: 2.5rem !important;           /* much larger text */
-        line-height: 2.4 !important;
+        padding: 1.8rem 1.2rem !important;
+        font-size: 3.5rem !important;           /* much larger text */
+        line-height: 3.4 !important;
     }
     .stChatInput input::placeholder {
         color: #ffffff !important;
