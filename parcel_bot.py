@@ -5,6 +5,7 @@ import os
 
 st.set_page_config(page_title="Insurance Grok", layout="wide")
 
+# Main dark black & white styling + fly-out settings
 st.markdown("""
     <style>
     html, body, [data-testid="stAppViewContainer"], .stApp {
@@ -15,51 +16,47 @@ st.markdown("""
     }
     .main .block-container {
         max-width: 1100px !important;
-        padding: 2rem 1.5rem 4rem !important;
+        padding: 2rem 2.5rem 4rem !important;
         background: #000000 !important;
+        margin: 0 auto !important;
     }
     h1 {
         color: #ffffff !important;
         text-align: center !important;
-        font-size: 2.5rem !important;
-        margin: 1.8rem 0 2.5rem 0 !important;
+        font-size: 2.6rem !important;
+        margin: 1.5rem 0 2.2rem 0 !important;
         font-weight: 400 !important;
     }
-    /* Messages - more flow / spacing */
+    /* Messages */
     .stChatMessage {
         background: #000000 !important;
         color: #ffffff !important;
         border: none !important;
-        padding: 1.2rem 0 !important;
-        margin: 1.8rem 0 !important;
-        line-height: 1.6 !important;
-        font-size: 1.05rem !important;
+        padding: 1.4rem 0 !important;
+        margin: 2rem 0 !important;
+        line-height: 1.65 !important;
+        font-size: 1.25rem !important;
     }
-    .user .stChatMessage {
-        text-align: right !important;
-    }
-    .assistant .stChatMessage {
-        text-align: left !important;
-    }
-    /* Input area - FORCE ALL BLACK, no grey anywhere */
+    .user .stChatMessage { text-align: right !important; }
+    .assistant .stChatMessage { text-align: left !important; }
+
+    /* Input - shorter, pure black */
     .stChatInput,
     .stChatInput > div,
     .stChatInput > div > div,
-    .stChatInput > div > div > div,
-    .stChatInput textarea,
     .stChatInput input {
         background: #000000 !important;
         color: #ffffff !important;
         border: none !important;
         border-radius: 0 !important;
         box-shadow: none !important;
-        padding: 1rem 0 !important;
-        font-size: 1.1rem !important;
+        padding: 0.6rem 0 !important;
+        font-size: 1.25rem !important;
+        line-height: 1.3 !important;
     }
-    .stChatInput input::placeholder,
-    .stChatInput textarea::placeholder {
+    .stChatInput input::placeholder {
         color: #ffffff !important;
-        opacity: 0.55 !important;
+        opacity: 0.6 !important;
     }
     .stChatInput button,
     .stChatInput button > div,
@@ -69,20 +66,55 @@ st.markdown("""
         fill: #ffffff !important;
         border: none !important;
         border-radius: 0 !important;
-        padding: 1rem !important;
+        padding: 0.6rem !important;
         margin-left: 1.2rem !important;
     }
     .stChatInput button:hover {
         background: #111111 !important;
     }
-    /* Hide everything unnecessary */
-    footer, header, section[data-testid="stSidebar"], .stDeployButton, .st-emotion-cache-1y4p8pa {
+
+    /* Fly-out settings panel */
+    .settings-flyout {
+        position: fixed !important;
+        top: 1rem !important;
+        right: 1.5rem !important;
+        z-index: 999 !important;
+        background: #111111 !important;
+        border: 1px solid #222222 !important;
+        border-radius: 8px !important;
+        padding: 1rem !important;
+        width: 280px !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+        color: #ffffff !important;
+    }
+    .settings-flyout [data-testid="stExpander"] {
+        background: transparent !important;
+        border: none !important;
+    }
+    .settings-flyout summary {
+        color: #ffffff !important;
+        font-size: 1rem !important;
+        cursor: pointer !important;
+    }
+    .settings-flyout .stCheckbox {
+        color: #ffffff !important;
+    }
+
+    /* Hide unwanted elements */
+    footer, header, section[data-testid="stSidebar"], .stDeployButton {
         display: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
+# Title
 st.markdown("<h1>Insurance Grok</h1>", unsafe_allow_html=True)
+
+# Fly-out settings panel (top-right)
+with st.expander("Settings", expanded=False):
+    st.markdown('<div class="settings-flyout">', unsafe_allow_html=True)
+    show_hist = st.checkbox("Show last 20 messages", value=False)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 api_key = st.secrets.get("XAI_API_KEY")
 if not api_key:
@@ -106,7 +138,9 @@ if "messages" not in st.session_state:
         st.session_state.messages = [{"role": "assistant", "content": "Ready."}]
         save(st.session_state.messages)
 
-for msg in st.session_state.messages:
+# Display messages
+display_msgs = st.session_state.messages[-20:] if show_hist else st.session_state.messages
+for msg in display_msgs:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
