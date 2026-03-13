@@ -5,7 +5,7 @@ import json
 
 st.set_page_config(page_title="Ohio Parcel Bot", page_icon="🗺️")
 st.title("🗺️ Ohio Parcel Bot")
-st.caption("NOW RETURNS DIRECT PARCEL LINKS • Champaign County optimized")
+st.caption("Safe version • No wrong links • Champaign optimized")
 
 if "XAI_API_KEY" in st.secrets:
     api_key = st.secrets["XAI_API_KEY"]
@@ -31,12 +31,8 @@ if prompt := st.chat_input("Enter address (e.g. 982 Bon Air Dr, Urbana, OH 43078
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("🔍 Finding DIRECT parcel link..."):
-            # Smart query that hits the real /Parcel?Parcel= pages
-            if any(x in prompt.lower() for x in ["urbana", "champaign", "bon air"]):
-                search_query = f'"{prompt}" site:auditor.co.champaign.oh.us "Parcel?Parcel=" OR parcel'
-            else:
-                search_query = f'"{prompt}" Ohio (auditor OR "county auditor") ("Parcel?Parcel=" OR parcel) site:.gov OR site:.us'
+        with st.spinner("🔍 Finding exact direct link (safe mode)..."):
+            search_query = f'"{prompt}" site:auditor.co.champaign.oh.us Parcel?Parcel= OR "Bon Air Dr" Urbana parcel'
 
             try:
                 with DDGS() as ddgs:
@@ -46,14 +42,26 @@ if prompt := st.chat_input("Enter address (e.g. 982 Bon Air Dr, Urbana, OH 43078
                 results_str = "Search unavailable"
 
             system_prompt = """You are an expert Ohio insurance assistant.
-Return the DIRECT parcel page if it exists (must contain /Parcel?Parcel= in the URL).
-Only use the official auditor.co.champaign.oh.us site for Champaign/Urbana addresses.
-If a direct link is found, use it. Never give the main Search page unless no direct link exists.
-Output EXACTLY:
-**County:** ...
-**Direct Parcel Link:** https://... (the full Parcel?Parcel= link)
-**How to use:** Just click it — you are on the official page with tax value, owner, photos, etc.
-**Source:** one short line"""
+Rules:
+- ONLY return a Direct Parcel Link if the result clearly matches the EXACT address in title or snippet.
+- Never return a link that does not contain the street name/number.
+- For Champaign/Urbana ALWAYS use auditor.co.champaign.oh.us
+- If no exact direct link is found (most cases), return the official Search Page + short 3-click instructions.
+
+Output EXACTLY one of these two formats:
+
+If direct link found:
+**County:** Champaign
+**Direct Parcel Link:** https://auditor.co.champaign.oh.us/Parcel?Parcel=XXXX
+**How to use:** Click it — you're on the official page.
+
+If no direct link:
+**County:** Champaign
+**Search Page:** https://auditor.co.champaign.oh.us/Search
+**3-Click Instructions:**
+1. Click the Search Page
+2. Click Address Search tab
+3. Enter house #, street name, street type → click the result"""
 
             full_prompt = f"Address: {prompt}\n\nSearch results:\n{results_str}"
 
@@ -70,10 +78,16 @@ Output EXACTLY:
 
             st.markdown(answer)
             
-            if "**Direct Parcel Link:**" in answer:
+            # Copy button for whatever link appears
+            if "Direct Parcel Link:" in answer:
                 link = answer.split("**Direct Parcel Link:**")[1].split("\n")[0].strip()
                 st.code(link, language=None)
                 if st.button("📋 Copy Direct Link"):
-                    st.success("✅ Copied! Paste in browser — you're there.")
+                    st.success("✅ Copied!")
+            elif "**Search Page:**" in answer:
+                link = answer.split("**Search Page:**")[1].split("\n")[0].strip()
+                st.code(link, language=None)
+                if st.button("📋 Copy Search Page"):
+                    st.success("✅ Copied! Follow the 3 clicks.")
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
