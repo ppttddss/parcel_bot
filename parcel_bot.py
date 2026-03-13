@@ -1,3 +1,4 @@
+# Rebuild trigger for requirements.txt - March 2026
 import streamlit as st
 from openai import OpenAI
 from duckduckgo_search import DDGS
