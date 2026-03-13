@@ -3,9 +3,9 @@ from openai import OpenAI
 from duckduckgo_search import DDGS
 import json
 
-st.set_page_config(page_title="Parcel + Photo Bot", page_icon="🏠")
-st.title("🏠 Champaign Parcel + Photo Bot")
-st.caption("Direct links only • Accurate photos • Powered by Grok")
+st.set_page_config(page_title="Ohio Parcel + Photo Bot", page_icon="🏠")
+st.title("🏠 Ohio Parcel + Photo Bot")
+st.caption("All 88 counties • Direct links only • Accurate photos")
 
 if "XAI_API_KEY" in st.secrets:
     api_key = st.secrets["XAI_API_KEY"]
@@ -25,21 +25,18 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-if prompt := st.chat_input("Enter property address (e.g. 409 Boyce St, Urbana, OH 43078)"):
+if prompt := st.chat_input("Enter any Ohio address (e.g. 3690 Rosedale Rd, Irwin, OH 43029)"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("🔍 Finding direct parcel page + real photos..."):
-            # Strong searches (same power I use)
+        with st.spinner("🔍 Finding direct parcel + real photos..."):
             queries = [
-                f'"{prompt}" ("parcel number" OR "parcel id" OR APN) (zillow OR redfin OR auditor) Urbana',
-                f'"{prompt}" site:auditor.co.champaign.oh.us Parcel?Parcel=',
-                f'"{prompt}" zillow',
-                f'"{prompt}" redfin'
+                f'"{prompt}" ("parcel number" OR "parcel id" OR APN OR "Parcel #:") auditor Ohio',
+                f'"{prompt}" zillow OR redfin',
+                f'"{prompt}" site:.oh.us Parcel?Parcel='
             ]
-            
             all_results = []
             for q in queries:
                 try:
@@ -48,24 +45,26 @@ if prompt := st.chat_input("Enter property address (e.g. 409 Boyce St, Urbana, O
                         all_results.extend(results)
                 except:
                     pass
-            
             results_str = json.dumps([{"title": r["title"], "link": r["href"], "snippet": r["body"]} for r in all_results], indent=2)
 
-            system_prompt = """You are an expert Champaign County Ohio insurance assistant.
-Return ONLY direct, verified links. Never invent ZPIDs or links.
-- For parcel: extract real parcel ID (K48-25-00-..-..-.. format) and build https://auditor.co.champaign.oh.us/Parcel?Parcel=ID
-- For photos: use only real Zillow and Redfin links that contain the exact address
-- Street View: always use the reliable Google Maps search link
+            system_prompt = """You are an expert Ohio insurance assistant.
+For ANY Ohio address:
+- First identify the county
+- Find the official county auditor site (auditor.co.[county].oh.us)
+- Extract the real parcel ID from Zillow/Redfin/auditor results
+- Build the direct parcel URL: https://auditor.co.[county].oh.us/Parcel?Parcel=ID
+- Also return correct Zillow, Redfin, and Google Maps Street View links
+- Never invent links or ZPIDs
 
-Output exactly this format (nothing else):
+Output EXACTLY this format:
 
-**Direct Parcel Page:** https://auditor.co.champaign.oh.us/Parcel?Parcel=XXXX (or "Not indexed yet")
+**Direct Parcel Page:** https://... (or "Not indexed yet")
 
 **Zillow Photos:** https://...
 
 **Redfin Photos:** https://...
 
-**Google Street View:** https://www.google.com/maps/search/?api=1&query=full address here"""
+**Google Street View:** https://www.google.com/maps/search/?api=1&query=[full address]"""
 
             full_prompt = f"Address: {prompt}\n\nSearch results:\n{results_str}"
 
@@ -76,15 +75,15 @@ Output exactly this format (nothing else):
                     {"role": "user", "content": full_prompt}
                 ],
                 temperature=0.0,
-                max_tokens=500
+                max_tokens=600
             )
             answer = response.choices[0].message.content.strip()
 
             st.markdown(answer)
             
-            # One-click copy for every link
-            for line in answer.split("\n"):
-                if "https://" in line and ("Parcel" in line or "Zillow" in line or "Redfin" in line or "Street View" in line or "maps" in line):
+            # Auto copy buttons for every link
+            for line in answer.splitlines():
+                if "https://" in line and any(x in line for x in ["Parcel", "Zillow", "Redfin", "maps"]):
                     st.code(line.strip(), language=None)
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
