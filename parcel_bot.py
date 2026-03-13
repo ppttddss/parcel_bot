@@ -5,9 +5,8 @@ import json
 
 st.set_page_config(page_title="Ohio Parcel Bot", page_icon="🗺️")
 st.title("🗺️ Ohio Parcel Bot")
-st.caption("Correct Champaign County site • Shortest path to direct link")
+st.caption("NOW RETURNS DIRECT PARCEL LINKS • Champaign County optimized")
 
-# API key
 if "XAI_API_KEY" in st.secrets:
     api_key = st.secrets["XAI_API_KEY"]
 else:
@@ -26,41 +25,37 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-if prompt := st.chat_input("Enter address (e.g. 983 Bon Air Dr, Urbana, OH 43078)"):
+if prompt := st.chat_input("Enter address (e.g. 982 Bon Air Dr, Urbana, OH 43078)"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("🔍 Getting you to the exact parcel page..."):
-            # Hard-coded correct site for your county
-            if "Urbana" in prompt or "Champaign" in prompt.lower():
-                search_page = "https://auditor.co.champaign.oh.us/Search"
-                gis_map = "https://auditor.co.champaign.oh.us/Map"
-                county = "Champaign"
+        with st.spinner("🔍 Finding DIRECT parcel link..."):
+            # Smart query that hits the real /Parcel?Parcel= pages
+            if any(x in prompt.lower() for x in ["urbana", "champaign", "bon air"]):
+                search_query = f'"{prompt}" site:auditor.co.champaign.oh.us "Parcel?Parcel=" OR parcel'
             else:
-                search_query = f'"{prompt}" Ohio (auditor OR "county auditor") ("address search" OR "property search")'
-                try:
-                    with DDGS() as ddgs:
-                        results = list(ddgs.text(search_query, max_results=5))
-                    search_page = results[0]["href"] if results else "https://auditor.co.champaign.oh.us/Search"
-                except:
-                    search_page = "https://auditor.co.champaign.oh.us/Search"
-                county = "Your county"
+                search_query = f'"{prompt}" Ohio (auditor OR "county auditor") ("Parcel?Parcel=" OR parcel) site:.gov OR site:.us'
+
+            try:
+                with DDGS() as ddgs:
+                    results = list(ddgs.text(search_query, max_results=8))
+                results_str = json.dumps([{"title": r["title"], "link": r["href"], "snippet": r["body"]} for r in results], indent=2)
+            except:
+                results_str = "Search unavailable"
 
             system_prompt = """You are an expert Ohio insurance assistant.
-For Champaign County (Urbana addresses) always use https://auditor.co.champaign.oh.us/Search
-Give the shortest possible instructions (max 3 clicks) to reach the direct parcel page.
+Return the DIRECT parcel page if it exists (must contain /Parcel?Parcel= in the URL).
+Only use the official auditor.co.champaign.oh.us site for Champaign/Urbana addresses.
+If a direct link is found, use it. Never give the main Search page unless no direct link exists.
 Output EXACTLY:
 **County:** ...
-**Search Page:** https://...
-**GIS Map:** https://...
-**3-Click Instructions:**
-1. Open the Search Page
-2. Click "Address Search"
-3. Type the full address and click Search → click the matching result to get the direct parcel link[](https://auditor.co.champaign.oh.us/Parcel?Parcel=XXXX)"""
+**Direct Parcel Link:** https://... (the full Parcel?Parcel= link)
+**How to use:** Just click it — you are on the official page with tax value, owner, photos, etc.
+**Source:** one short line"""
 
-            full_prompt = f"Address: {prompt}\nCounty: {county}\nSearch Page: {search_page}"
+            full_prompt = f"Address: {prompt}\n\nSearch results:\n{results_str}"
 
             response = client.chat.completions.create(
                 model="grok-4.20-beta-0309-non-reasoning",
@@ -75,10 +70,10 @@ Output EXACTLY:
 
             st.markdown(answer)
             
-            if "**Search Page:**" in answer:
-                link = answer.split("**Search Page:**")[1].split("\n")[0].strip()
+            if "**Direct Parcel Link:**" in answer:
+                link = answer.split("**Direct Parcel Link:**")[1].split("\n")[0].strip()
                 st.code(link, language=None)
-                if st.button("📋 Copy Search Page"):
-                    st.success("✅ Copied! Now do the 3 clicks.")
+                if st.button("📋 Copy Direct Link"):
+                    st.success("✅ Copied! Paste in browser — you're there.")
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
