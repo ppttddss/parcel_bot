@@ -5,7 +5,7 @@ import json
 
 st.set_page_config(page_title="Champaign Parcel Bot", page_icon="🏠")
 st.title("🏠 Champaign County Parcel Bot")
-st.caption("Direct auditor parcel page only • Zero extra steps • Urbana optimized")
+st.caption("Now works like Grok • Direct links only • No steps")
 
 if "XAI_API_KEY" in st.secrets:
     api_key = st.secrets["XAI_API_KEY"]
@@ -25,35 +25,45 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-if prompt := st.chat_input("Enter property address (e.g. 612 College Way, Urbana, OH 43078)"):
+if prompt := st.chat_input("Enter property address (e.g. 333 Sweetman Ave, Urbana, OH 43078)"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("🔍 Pulling your direct parcel page..."):
-            search_query = f'"{prompt}" ("parcel number" OR "parcel id" OR "APN" OR "Parcel #:") (zillow OR redfin OR regrid) Urbana OR Champaign Ohio'
+        with st.spinner("🔍 Finding your DIRECT parcel page (Grok-style search)..."):
+            # Stronger searches like Grok uses
+            queries = [
+                f'"{prompt}" ("parcel number" OR "parcel id" OR APN OR "Parcel #:") (zillow OR redfin OR "parcel number") Urbana Champaign',
+                f'"{prompt}" K48 OR "K48-25" OR "Parcel?Parcel=" Urbana',
+                f'"{prompt}" site:auditor.co.champaign.oh.us parcel'
+            ]
+            
+            all_results = []
+            for q in queries:
+                try:
+                    with DDGS() as ddgs:
+                        results = list(ddgs.text(q, max_results=8))
+                        all_results.extend(results)
+                except:
+                    pass
+            
+            results_str = json.dumps([{"title": r["title"], "link": r["href"], "snippet": r["body"]} for r in all_results], indent=2)
 
-            try:
-                with DDGS() as ddgs:
-                    results = list(ddgs.text(search_query, max_results=10))
-                results_str = json.dumps([{"title": r["title"], "link": r["href"], "snippet": r["body"]} for r in results], indent=2)
-            except:
-                results_str = "Search unavailable"
+            system_prompt = """You are Grok — full power search mode.
+For ANY Champaign/Urbana address:
+- Scan EVERY snippet for parcel ID (look for patterns like K48-25-00-02-06-025-00 or K482500020602500)
+- Extract the exact ID and format it with dashes (K48-25-00-..-..-..)
+- Build the direct URL: https://auditor.co.champaign.oh.us/Parcel?Parcel=ID
+- Rule: ONLY return the direct link if you are 100% confident it matches the address. Never guess.
 
-            system_prompt = """You are an expert Champaign County Ohio insurance assistant.
-Rule: Return ONLY the direct auditor parcel page. No steps, no search page, no extra text.
-- Scan results for the exact parcel ID (looks like K48-25-00-01-11-014-00 or K482500011101400)
-- Format it with dashes if needed (K48-25-00-01-11-014-00 style)
-- Build the exact URL: https://auditor.co.champaign.oh.us/Parcel?Parcel=ID
-- If you find a matching parcel ID for the address, output exactly:
-
+Output EXACTLY:
 **Direct Parcel Page:** https://auditor.co.champaign.oh.us/Parcel?Parcel=XXXX
 
-If no parcel ID found in any source:
-**Direct Parcel Page:** Not publicly indexed yet for this address"""
+If no ID found after searching:
+**Direct Parcel Page:** Not indexed yet"""
 
-            full_prompt = f"Address: {prompt}\n\nSearch results:\n{results_str}"
+            full_prompt = f"Address: {prompt}\n\nAll search results:\n{results_str}"
 
             response = client.chat.completions.create(
                 model="grok-4.20-beta-0309-non-reasoning",
@@ -72,6 +82,6 @@ If no parcel ID found in any source:
                 link = answer.split("**Direct Parcel Page:**")[1].split("\n")[0].strip()
                 st.code(link, language=None)
                 if st.button("📋 Copy Direct Link"):
-                    st.success("✅ Copied! Paste in browser — you're on the official parcel page.")
+                    st.success("✅ Copied! Paste in browser — you're there.")
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
