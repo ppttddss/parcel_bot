@@ -60,16 +60,16 @@ st.markdown("""
         background: #111111 !important;
         color: #ffffff !important;
         border: none !important;
-        border-radius: 8px !important;
+        border-radius: 4px !important;
         box-shadow: none !important;
-        padding: 0.8rem 1.2rem !important;
+        padding: 0.8rem 1rem !important;
         font-size: 3.5rem !important;           /* much larger text */
-        line-height: 3.4 !important;
+        line-height: 4.4 !important;
     }
     .stChatInput input::placeholder {
         color: #ffffff !important;
         opacity: 0.8 !important;
-        font-size: 5.5rem !important;
+        font-size: 1.5rem !important;
     }
     .stChatInput button,
     .stChatInput button > div,
