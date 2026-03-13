@@ -5,7 +5,7 @@ import json
 
 st.set_page_config(page_title="Ohio Parcel Bot", page_icon="🗺️")
 st.title("🗺️ Ohio County Auditor Parcel Bot")
-st.caption("Now gives exact 8-second instructions • Works for every Ohio county")
+st.caption("Now uses the REAL Champaign County site • Works for your Urbana addresses")
 
 # API key
 if "XAI_API_KEY" in st.secrets:
@@ -32,34 +32,37 @@ if prompt := st.chat_input("Enter any Ohio property address (e.g. 983 Bon Air Dr
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("🔍 Getting exact search page + 8-second steps..."):
-            search_query = f'"{prompt}" Ohio (auditor OR "county auditor") ("address search" OR "property search" OR parcel) site:.gov OR site:.us'
+        with st.spinner("🔍 Getting the correct search page + exact steps..."):
+            search_query = f'"{prompt}" Ohio (auditor OR "county auditor") ("address search" OR "property search")'
 
             try:
                 with DDGS() as ddgs:
-                    results = list(ddgs.text(search_query, max_results=8))
+                    results = list(ddgs.text(search_query, max_results=6))
                 results_str = json.dumps([{"title": r["title"], "link": r["href"], "snippet": r["body"]} for r in results], indent=2)
             except:
                 results_str = "Search unavailable"
 
             system_prompt = """You are an expert Ohio insurance assistant.
-For ANY Ohio address:
-- Always return the official county auditor SEARCH page
-- Give extremely clear 1-2-3-4 steps that take under 10 seconds
-- For Champaign County always mention "Click Address Search tab"
-- Also give the GIS Map link if it exists
-- Never say a direct parcel link unless it actually appears in results (it almost never does)
+Special rule for Champaign County (any address with 'Urbana' or 'Champaign'):
+- ALWAYS use https://auditor.co.champaign.oh.us/Search
+- Give these EXACT 8-second steps
+- Also give GIS map https://auditor.co.champaign.oh.us/Map
+
+For ALL other counties use the search results.
 
 Output EXACTLY:
 **County:** ...
 **Search Page:** https://...
 **GIS Map (if available):** https://...
 **8-Second Steps:**
-1. Click the Search Page link
-2. [exact action for this county]
-3. Type the full address exactly as entered
-4. Click the matching property
-**Bonus:** You will land on the exact parcel page with tax info, owner, value, etc."""
+1. Open the Search Page
+2. Use "Address Search" section
+3. House #: [number from address]
+4. Street Name: [street]
+5. Street Type: [Dr, St, Ave, etc.]
+6. Click Search
+7. Click the matching property → you get the direct parcel page like https://auditor.co.champaign.oh.us/Parcel?Parcel=...
+**Bonus:** You will see tax value, owner, and everything you need."""
 
             full_prompt = f"Address: {prompt}\n\nSearch results:\n{results_str}"
 
@@ -80,6 +83,6 @@ Output EXACTLY:
                 link = answer.split("**Search Page:**")[1].split("\n")[0].strip()
                 st.code(link, language=None)
                 if st.button("📋 Copy Search Page"):
-                    st.success("✅ Copied! Paste into browser and follow the steps.")
+                    st.success("✅ Copied! Now follow the 8-second steps.")
 
     st.session_state.messages.append({"role": "assistant", "content": answer})
