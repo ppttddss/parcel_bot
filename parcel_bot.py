@@ -26,7 +26,6 @@ st.markdown("""
         margin: 1.5rem 0 2.2rem 0 !important;
         font-weight: 400 !important;
     }
-    /* Messages */
     .stChatMessage {
         background: #000000 !important;
         color: #ffffff !important;
@@ -39,20 +38,19 @@ st.markdown("""
     .user .stChatMessage { text-align: right !important; }
     .assistant .stChatMessage { text-align: left !important; }
 
-    /* Search/input area - dark grey background + white outline */
+    /* Input - dark grey bg + single white outline */
     .stChatInput,
     .stChatInput > div,
     .stChatInput > div > div,
     .stChatInput input {
         background: #111111 !important;
         color: #ffffff !important;
-        border: 1px solid #ffffff !important;
+        border: 1px solid #ffffff !important;  /* only one clean white border */
         border-radius: 8px !important;
         box-shadow: none !important;
         padding: 0.6rem 1rem !important;
         font-size: 1.25rem !important;
         line-height: 1.3 !important;
-        transition: border-color 0.2s !important;
     }
     .stChatInput input:focus {
         border-color: #ffffff !important;
@@ -69,57 +67,57 @@ st.markdown("""
         color: #ffffff !important;
         fill: #ffffff !important;
         border: none !important;
-        border-radius: 0 !important;
-        padding: 0.6rem !important;
+        border-radius: 8px !important;
+        padding: 0.6rem 1rem !important;
         margin-left: 0.8rem !important;
     }
     .stChatInput button:hover {
         background: #222222 !important;
     }
 
-    /* Modern side fly-out settings */
-    .settings-flyout {
+    /* Side fly-out (modern slide-in) */
+    .flyout-container {
         position: fixed !important;
         top: 0 !important;
         right: -320px !important;
         width: 300px !important;
-        height: 100% !important;
+        height: 100vh !important;
         background: #111111 !important;
         border-left: 1px solid #333333 !important;
         padding: 2rem 1.5rem !important;
         color: #ffffff !important;
         transition: right 0.3s ease !important;
-        z-index: 999 !important;
+        z-index: 1000 !important;
         overflow-y: auto !important;
     }
-    .settings-flyout.open {
+    .flyout-container.open {
         right: 0 !important;
     }
     .flyout-toggle {
         position: fixed !important;
-        top: 1rem !important;
-        right: 1rem !important;
+        top: 1.2rem !important;
+        right: 1.5rem !important;
         background: #111111 !important;
         color: #ffffff !important;
         border: 1px solid #444444 !important;
         border-radius: 6px !important;
-        padding: 0.6rem 1rem !important;
+        padding: 0.5rem 1rem !important;
         cursor: pointer !important;
-        z-index: 1000 !important;
+        z-index: 1001 !important;
         font-size: 0.95rem !important;
     }
     .flyout-toggle:hover {
         background: #222222 !important;
     }
     .flyout-content h4 {
-        margin-top: 0 !important;
+        margin: 0 0 1.5rem 0 !important;
         color: #ffffff !important;
     }
-    .flyout-content .stCheckbox {
+    .flyout-content .stCheckbox label {
         color: #ffffff !important;
     }
 
-    /* Hide unwanted */
+    /* Hide junk */
     footer, header, section[data-testid="stSidebar"], .stDeployButton {
         display: none !important;
     }
@@ -129,23 +127,24 @@ st.markdown("""
 # Title
 st.markdown("<h1>Insurance Grok</h1>", unsafe_allow_html=True)
 
-# Fly-out toggle button + hidden checkbox to control open/close
-if 'flyout_open' not in st.session_state:
-    st.session_state.flyout_open = False
+# Settings toggle button (top-right)
+if 'settings_open' not in st.session_state:
+    st.session_state.settings_open = False
 
-toggle_label = "Close Settings" if st.session_state.flyout_open else "Settings"
-if st.button(toggle_label, key="flyout_toggle", help="Open/close settings"):
-    st.session_state.flyout_open = not st.session_state.flyout_open
+toggle_text = "Close Settings" if st.session_state.settings_open else "Settings"
+if st.button(toggle_text, key="settings_toggle", help="Open/close settings panel"):
+    st.session_state.settings_open = not st.session_state.settings_open
     st.rerun()
 
-# Fly-out panel (slides in from right)
-flyout_class = "settings-flyout open" if st.session_state.flyout_open else "settings-flyout"
+# Fly-out panel
+flyout_class = "flyout-container open" if st.session_state.settings_open else "flyout-container"
 st.markdown(f'<div class="{flyout_class}">', unsafe_allow_html=True)
-st.markdown('<div class="flyout-content">', unsafe_allow_html=True)
+st.markdown('<div class="flyout-content">')
 st.markdown("<h4>Settings</h4>")
 show_hist = st.checkbox("Show last 20 messages", value=False)
 st.markdown('</div></div>', unsafe_allow_html=True)
 
+# API & memory logic
 api_key = st.secrets.get("XAI_API_KEY")
 if not api_key:
     st.error("Missing API key.")
@@ -153,27 +152,32 @@ if not api_key:
 
 MEMORY_FILE = "memory.json"
 
-def load():
+def load_memory():
     if os.path.exists(MEMORY_FILE):
-        try: return json.load(open(MEMORY_FILE, "r", encoding="utf-8"))
-        except: return []
+        try:
+            with open(MEMORY_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return []
     return []
 
-def save(msgs):
-    json.dump(msgs, open(MEMORY_FILE, "w", encoding="utf-8"), indent=None)
+def save_memory(messages):
+    with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(messages, f, ensure_ascii=False, indent=None)
 
 if "messages" not in st.session_state:
-    st.session_state.messages = load()
+    st.session_state.messages = load_memory()
     if not st.session_state.messages:
         st.session_state.messages = [{"role": "assistant", "content": "Ready."}]
-        save(st.session_state.messages)
+        save_memory(st.session_state.messages)
 
-# Display
+# Display messages based on setting
 display_msgs = st.session_state.messages[-20:] if show_hist else st.session_state.messages
 for msg in display_msgs:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
+# Chat input
 if prompt := st.chat_input("Ask…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
@@ -198,4 +202,4 @@ if prompt := st.chat_input("Ask…"):
             except Exception as e:
                 st.markdown(f"Error: {str(e)}")
 
-    save(st.session_state.messages)
+    save_memory(st.session_state.messages)
