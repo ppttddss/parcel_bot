@@ -6,25 +6,26 @@ st.set_page_config(page_title="Grok • SharePoint", page_icon="🟢", layout="c
 st.title("🟢 Grok by xAI")
 st.caption("Live chat — embedded in SharePoint")
 
-# === API KEY (sidebar) ===
-if "api_key" not in st.session_state:
-    st.session_state.api_key = ""
-
-api_key = st.sidebar.text_input(
-    "xAI API Key",
-    type="password",
-    value=st.session_state.api_key,
-    placeholder="xai-...",
-    help="Get it free at https://console.x.ai"
-)
-
-if api_key:
-    st.session_state.api_key = api_key
+# ================== API KEY (Secrets first, then sidebar) ==================
+if "XAI_API_KEY" in st.secrets:
+    api_key = st.secrets["XAI_API_KEY"]
+    st.success("✅ API key loaded from secrets (permanent)")
+    st.sidebar.success("Key is securely stored")
 else:
-    st.warning("Enter your xAI API key in the sidebar to start")
-    st.stop()
+    api_key = st.sidebar.text_input(
+        "xAI API Key",
+        type="password",
+        placeholder="xai-...",
+        help="Get it at https://console.x.ai",
+        key="api_key_widget"   # this fixes the "not saving" issue
+    )
+    if api_key:
+        st.sidebar.success("✅ Key saved for this session")
+    else:
+        st.warning("Enter your xAI API key in the sidebar OR set it as a secret (recommended)")
+        st.stop()
 
-# === CHAT HISTORY ===
+# ================== CHAT HISTORY ==================
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "Hi! I'm Grok, built by xAI. Ask me anything — I'm ready inside SharePoint! 🚀"}
