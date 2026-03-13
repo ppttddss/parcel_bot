@@ -3,74 +3,94 @@ import requests
 import json
 import os
 
-st.set_page_config(page_title="Grok Team • Clean View", page_icon="🟢", layout="wide")
+st.set_page_config(page_title="Grok Team • Microsoft Style", page_icon="🟦", layout="wide")
 
-# ─── Custom CSS for SuperGrok-like premium look ───
+# ─── Custom CSS: SuperGrok clean + Microsoft blue + white bg ───
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap');
 
     body, .stApp {
-        background: linear-gradient(135deg, #0f0f17 0%, #0a0a12 100%);
-        color: #e0e0ff;
-        font-family: 'Inter', sans-serif;
+        background: #f8f9fa !important;
+        font-family: 'Segoe UI', system-ui, sans-serif !important;
     }
-    .stApp > header { background: transparent !important; }
-    section[data-testid="stSidebar"] { display: none !important; }  /* hide sidebar by default */
     .main .block-container {
-        max-width: 900px !important;
-        padding-top: 2rem !important;
-        padding-bottom: 6rem !important;
+        max-width: 960px !important;
+        padding: 2rem 1.5rem 6rem !important;
+    }
+    .chat-container {
+        background: white !important;
+        border: 1px solid #00a4ef !important;
+        border-radius: 16px !important;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
+    }
+    .header {
+        background: linear-gradient(135deg, #00a4ef, #0078d4) !important;
+        color: white !important;
+        padding: 1.2rem 2rem !important;
+        text-align: center !important;
+    }
+    .header h1 {
+        margin: 0 !important;
+        font-size: 2.1rem !important;
+        font-weight: 600 !important;
     }
     .stChatMessage {
         border-radius: 18px !important;
         padding: 14px 18px !important;
-        margin-bottom: 1.2rem !important;
-        max-width: 80% !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        margin: 1rem 0 !important;
+        max-width: 82% !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
     }
     .user .stChatMessage {
-        background: linear-gradient(135deg, #22c55e, #16a34a) !important;
-        color: black !important;
+        background: #00a4ef !important;
+        color: white !important;
         margin-left: auto !important;
     }
     .assistant .stChatMessage {
-        background: #1e1e38 !important;
-        border: 1px solid #333366;
+        background: #f0f2f5 !important;
+        color: #1e1e1e !important;
+        border: 1px solid #e0e0e0 !important;
     }
     .stChatInput > div > div {
-        background: #1a1a2e !important;
-        border: 1px solid #333366 !important;
+        background: white !important;
+        border: 1px solid #00a4ef !important;
         border-radius: 999px !important;
-        padding: 0.4rem 1rem !important;
+        padding: 0.5rem 1rem !important;
     }
     .stChatInput input {
-        color: white !important;
+        color: #1e1e1e !important;
     }
     .stChatInput button {
-        background: #22c55e !important;
-        color: black !important;
+        background: #00a4ef !important;
+        color: white !important;
         border-radius: 50% !important;
         width: 48px !important;
         height: 48px !important;
         margin-left: 8px !important;
     }
-    h1, h2, h3 { color: #ffffff !important; }
-    .stSpinner > div > div { border-top-color: #22c55e !important; }
-    footer { visibility: hidden; }
-    .caption { color: #8888aa !important; font-size: 0.8rem !important; text-align: center; }
+    .sidebar-toggle {
+        background: #00a4ef !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.5rem 1rem !important;
+    }
+    .caption {
+        color: #666 !important;
+        font-size: 0.85rem !important;
+        text-align: center !important;
+        margin-top: 2rem !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# ─── Header ───
+# ─── Header with Microsoft blue branding ───
 st.markdown("""
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <h1 style="font-size: 2.8rem; margin: 0; color: #ffffff;">
-            🟢 Grok Team
-        </h1>
-        <p style="color: #a0a0ff; font-size: 1.1rem; margin-top: 0.3rem;">
-            Shared memory • Clean & powerful
-        </p>
+    <div class="header">
+        <h1>🟦 Grok Team</h1>
+        <p style="margin: 0.4rem 0 0; opacity: 0.9;">Shared memory • Powered by xAI</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -101,36 +121,41 @@ if "messages" not in st.session_state:
 
 if not st.session_state.messages:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Hey team — Grok here. Full memory active. Ask anything."}
+        {"role": "assistant", "content": "Hello team — Grok here with full memory active. Ask anything."}
     ]
     save_memory(st.session_state.messages)
 
 if "current_session" not in st.session_state:
     st.session_state.current_session = []
 
-# ─── Controls (minimal, toggleable via query param or secret button if needed) ───
-show_history = False  # default super clean — change to True if you want last 20 always visible
+# ─── Minimal sidebar for history toggle ───
+with st.sidebar:
+    st.markdown("<h3 style='color:#00a4ef;'>Controls</h3>", unsafe_allow_html=True)
+    view_history = st.checkbox("View last 20 team messages", value=False,
+                               help="Show recent team history. Uncheck for clean view.")
 
-# ─── DISPLAY (only current session by default) ───
-display_messages = st.session_state.current_session[:]
+# ─── Chat display ───
+chat_container = st.container()
+with chat_container:
+    display_messages = []
+    if view_history:
+        display_messages = st.session_state.messages[-20:]
+    display_messages += st.session_state.current_session
 
-if show_history:
-    display_messages = st.session_state.messages[-20:] + st.session_state.current_session
+    for msg in display_messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 
-for msg in display_messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+    if not display_messages:
+        st.markdown("""
+            <div style="text-align:center; color:#666; padding:5rem 1rem;">
+                <h3 style="color:#333;">Ready when you are</h3>
+                <p>Team memory is active in background. Start typing.</p>
+            </div>
+        """, unsafe_allow_html=True)
 
-if not display_messages:
-    st.markdown("""
-        <div style="text-align:center; color:#8888aa; padding:4rem 1rem;">
-            <h3 style="color:#cccccc;">Ready when you are</h3>
-            <p>Team memory is active in the background — type to begin.</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-# ─── INPUT ───
-if prompt := st.chat_input("Ask anything…"):
+# ─── Input ───
+if prompt := st.chat_input("Ask Grok anything…"):
     user_msg = {"role": "user", "content": prompt}
     st.session_state.messages.append(user_msg)
     st.session_state.current_session.append(user_msg)
@@ -149,7 +174,7 @@ if prompt := st.chat_input("Ask anything…"):
                     json={
                         "model": "grok-4.20-beta-0309-non-reasoning",
                         "messages": [
-                            {"role": "system", "content": "You are Grok by xAI. Truthful, helpful, witty. Use full team memory context."}
+                            {"role": "system", "content": "You are Grok by xAI. Use full team memory context. Be truthful, helpful, witty."}
                         ] + recent_for_api
                     },
                     timeout=90
@@ -173,7 +198,7 @@ if prompt := st.chat_input("Ask anything…"):
 
 # ─── Footer ───
 st.markdown("""
-    <div class="caption" style="margin-top: 3rem;">
-        Powered by xAI • Grok • Team memory active (hidden view)
+    <div class="caption">
+        Powered by xAI • Grok • Team memory active (hidden by default)
     </div>
 """, unsafe_allow_html=True)
