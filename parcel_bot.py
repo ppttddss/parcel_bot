@@ -5,7 +5,6 @@ import os
 
 st.set_page_config(page_title="Insurance Grok", layout="wide")
 
-# Main dark black & white styling + fly-out settings
 st.markdown("""
     <style>
     html, body, [data-testid="stAppViewContainer"], .stApp {
@@ -40,67 +39,87 @@ st.markdown("""
     .user .stChatMessage { text-align: right !important; }
     .assistant .stChatMessage { text-align: left !important; }
 
-    /* Input - shorter, pure black */
+    /* Search/input area - dark grey background + white outline */
     .stChatInput,
     .stChatInput > div,
     .stChatInput > div > div,
     .stChatInput input {
-        background: #000000 !important;
+        background: #111111 !important;
         color: #ffffff !important;
-        border: none !important;
-        border-radius: 0 !important;
+        border: 1px solid #ffffff !important;
+        border-radius: 8px !important;
         box-shadow: none !important;
-        padding: 0.6rem 0 !important;
+        padding: 0.6rem 1rem !important;
         font-size: 1.25rem !important;
         line-height: 1.3 !important;
+        transition: border-color 0.2s !important;
+    }
+    .stChatInput input:focus {
+        border-color: #ffffff !important;
+        outline: none !important;
     }
     .stChatInput input::placeholder {
-        color: #ffffff !important;
-        opacity: 0.6 !important;
+        color: #bbbbbb !important;
+        opacity: 0.7 !important;
     }
     .stChatInput button,
     .stChatInput button > div,
     .stChatInput button svg {
-        background: #000000 !important;
+        background: #111111 !important;
         color: #ffffff !important;
         fill: #ffffff !important;
         border: none !important;
         border-radius: 0 !important;
         padding: 0.6rem !important;
-        margin-left: 1.2rem !important;
+        margin-left: 0.8rem !important;
     }
     .stChatInput button:hover {
-        background: #111111 !important;
+        background: #222222 !important;
     }
 
-    /* Fly-out settings panel */
+    /* Modern side fly-out settings */
     .settings-flyout {
         position: fixed !important;
-        top: 1rem !important;
-        right: 1.5rem !important;
-        z-index: 999 !important;
+        top: 0 !important;
+        right: -320px !important;
+        width: 300px !important;
+        height: 100% !important;
         background: #111111 !important;
-        border: 1px solid #222222 !important;
-        border-radius: 8px !important;
-        padding: 1rem !important;
-        width: 280px !important;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+        border-left: 1px solid #333333 !important;
+        padding: 2rem 1.5rem !important;
         color: #ffffff !important;
+        transition: right 0.3s ease !important;
+        z-index: 999 !important;
+        overflow-y: auto !important;
     }
-    .settings-flyout [data-testid="stExpander"] {
-        background: transparent !important;
-        border: none !important;
+    .settings-flyout.open {
+        right: 0 !important;
     }
-    .settings-flyout summary {
+    .flyout-toggle {
+        position: fixed !important;
+        top: 1rem !important;
+        right: 1rem !important;
+        background: #111111 !important;
         color: #ffffff !important;
-        font-size: 1rem !important;
+        border: 1px solid #444444 !important;
+        border-radius: 6px !important;
+        padding: 0.6rem 1rem !important;
         cursor: pointer !important;
+        z-index: 1000 !important;
+        font-size: 0.95rem !important;
     }
-    .settings-flyout .stCheckbox {
+    .flyout-toggle:hover {
+        background: #222222 !important;
+    }
+    .flyout-content h4 {
+        margin-top: 0 !important;
+        color: #ffffff !important;
+    }
+    .flyout-content .stCheckbox {
         color: #ffffff !important;
     }
 
-    /* Hide unwanted elements */
+    /* Hide unwanted */
     footer, header, section[data-testid="stSidebar"], .stDeployButton {
         display: none !important;
     }
@@ -110,11 +129,22 @@ st.markdown("""
 # Title
 st.markdown("<h1>Insurance Grok</h1>", unsafe_allow_html=True)
 
-# Fly-out settings panel (top-right)
-with st.expander("Settings", expanded=False):
-    st.markdown('<div class="settings-flyout">', unsafe_allow_html=True)
-    show_hist = st.checkbox("Show last 20 messages", value=False)
-    st.markdown('</div>', unsafe_allow_html=True)
+# Fly-out toggle button + hidden checkbox to control open/close
+if 'flyout_open' not in st.session_state:
+    st.session_state.flyout_open = False
+
+toggle_label = "Close Settings" if st.session_state.flyout_open else "Settings"
+if st.button(toggle_label, key="flyout_toggle", help="Open/close settings"):
+    st.session_state.flyout_open = not st.session_state.flyout_open
+    st.rerun()
+
+# Fly-out panel (slides in from right)
+flyout_class = "settings-flyout open" if st.session_state.flyout_open else "settings-flyout"
+st.markdown(f'<div class="{flyout_class}">', unsafe_allow_html=True)
+st.markdown('<div class="flyout-content">', unsafe_allow_html=True)
+st.markdown("<h4>Settings</h4>")
+show_hist = st.checkbox("Show last 20 messages", value=False)
+st.markdown('</div></div>', unsafe_allow_html=True)
 
 api_key = st.secrets.get("XAI_API_KEY")
 if not api_key:
@@ -138,7 +168,7 @@ if "messages" not in st.session_state:
         st.session_state.messages = [{"role": "assistant", "content": "Ready."}]
         save(st.session_state.messages)
 
-# Display messages
+# Display
 display_msgs = st.session_state.messages[-20:] if show_hist else st.session_state.messages
 for msg in display_msgs:
     with st.chat_message(msg["role"]):
