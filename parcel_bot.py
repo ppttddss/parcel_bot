@@ -5,7 +5,6 @@ import os
 
 st.set_page_config(page_title="Insurance Grok", layout="wide")
 
-# Ultra-minimal black & white only
 st.markdown("""
     <style>
     html, body, [data-testid="stAppViewContainer"], .stApp {
@@ -15,26 +14,26 @@ st.markdown("""
         padding: 0 !important;
     }
     .main .block-container {
-        max-width: 1200px !important;
-        padding: 2rem 1rem 2rem !important;
-        margin: 0 auto !important;
+        max-width: 1100px !important;
+        padding: 2rem 1.5rem 4rem !important;
+        background: #000000 !important;
     }
     h1 {
         color: #ffffff !important;
         text-align: center !important;
-        font-size: 2.4rem !important;
-        margin: 1.5rem 0 2rem 0 !important;
-        font-weight: 500 !important;
+        font-size: 2.5rem !important;
+        margin: 1.8rem 0 2.5rem 0 !important;
+        font-weight: 400 !important;
     }
-    /* Remove all borders, greys, shadows */
+    /* Messages - more flow / spacing */
     .stChatMessage {
         background: #000000 !important;
         color: #ffffff !important;
         border: none !important;
-        border-radius: 0 !important;
-        padding: 1rem 0 !important;
-        margin: 1.2rem 0 !important;
-        box-shadow: none !important;
+        padding: 1.2rem 0 !important;
+        margin: 1.8rem 0 !important;
+        line-height: 1.6 !important;
+        font-size: 1.05rem !important;
     }
     .user .stChatMessage {
         text-align: right !important;
@@ -42,45 +41,47 @@ st.markdown("""
     .assistant .stChatMessage {
         text-align: left !important;
     }
-    /* Input - pure black, white text, no grey */
+    /* Input area - FORCE ALL BLACK, no grey anywhere */
     .stChatInput,
     .stChatInput > div,
-    .stChatInput > div > div {
+    .stChatInput > div > div,
+    .stChatInput > div > div > div,
+    .stChatInput textarea,
+    .stChatInput input {
         background: #000000 !important;
+        color: #ffffff !important;
         border: none !important;
         border-radius: 0 !important;
-        padding: 0.8rem 0 !important;
-    }
-    .stChatInput input {
-        color: #ffffff !important;
-        background: #000000 !important;
-        caret-color: #ffffff !important;
-        border: none !important;
+        box-shadow: none !important;
+        padding: 1rem 0 !important;
         font-size: 1.1rem !important;
     }
-    .stChatInput input::placeholder {
+    .stChatInput input::placeholder,
+    .stChatInput textarea::placeholder {
         color: #ffffff !important;
-        opacity: 0.6 !important;
+        opacity: 0.55 !important;
     }
-    .stChatInput button {
+    .stChatInput button,
+    .stChatInput button > div,
+    .stChatInput button svg {
         background: #000000 !important;
         color: #ffffff !important;
+        fill: #ffffff !important;
         border: none !important;
         border-radius: 0 !important;
-        padding: 0.8rem !important;
-        margin-left: 1rem !important;
+        padding: 1rem !important;
+        margin-left: 1.2rem !important;
     }
     .stChatInput button:hover {
         background: #111111 !important;
     }
-    /* Hide everything else */
-    footer, header, section[data-testid="stSidebar"], .stDeployButton, .reportview-container {
+    /* Hide everything unnecessary */
+    footer, header, section[data-testid="stSidebar"], .stDeployButton, .st-emotion-cache-1y4p8pa {
         display: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Just the title — no subtitle
 st.markdown("<h1>Insurance Grok</h1>", unsafe_allow_html=True)
 
 api_key = st.secrets.get("XAI_API_KEY")
@@ -110,8 +111,7 @@ for msg in st.session_state.messages:
         st.markdown(msg["content"])
 
 if prompt := st.chat_input("Ask…"):
-    user_msg = {"role": "user", "content": prompt}
-    st.session_state.messages.append(user_msg)
+    st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("user"):
         st.markdown(prompt)
