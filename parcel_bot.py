@@ -1,49 +1,62 @@
 import streamlit as st
 import requests
+import json
+import os
 
-st.set_page_config(page_title="Grok • SharePoint", page_icon="🟢", layout="centered")
+st.set_page_config(page_title="Grok • SharePoint Team", page_icon="🟢", layout="centered")
 
 st.title("🟢 Grok by xAI")
-st.caption("Live chat — embedded in SharePoint")
+st.caption("Team Memory Enabled — everyone shares the same history")
 
-# ================== API KEY (Secrets first, then sidebar) ==================
-if "XAI_API_KEY" in st.secrets:
-    api_key = st.secrets["XAI_API_KEY"]
-    st.success("✅ API key loaded from secrets (permanent)")
-    st.sidebar.success("Key is securely stored")
-else:
-    api_key = st.sidebar.text_input(
-        "xAI API Key",
-        type="password",
-        placeholder="xai-...",
-        help="Get it at https://console.x.ai",
-        key="api_key_widget"   # this fixes the "not saving" issue
-    )
-    if api_key:
-        st.sidebar.success("✅ Key saved for this session")
-    else:
-        st.warning("Enter your xAI API key in the sidebar OR set it as a secret (recommended)")
-        st.stop()
+# ================== API KEY FROM SECRETS ==================
+api_key = st.secrets.get("XAI_API_KEY")
+if not api_key:
+    st.error("No API key in secrets. Add XAI_API_KEY in Streamlit Settings → Secrets")
+    st.stop()
 
-# ================== CHAT HISTORY ==================
+# ================== TEAM MEMORY FILE ==================
+MEMORY_FILE = "team_memory.json"
+
+def load_memory():
+    if os.path.exists(MEMORY_FILE):
+        try:
+            with open(MEMORY_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return []
+    return []
+
+def save_memory(messages):
+    with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(messages, f, ensure_ascii=False, indent=2)
+
+# Load shared team memory
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Hi! I'm Grok, built by xAI. Ask me anything — I'm ready inside SharePoint! 🚀"}
-    ]
+    st.session_state.messages = load_memory()
 
-# Display messages
+# Initial welcome if empty
+if not st.session_state.messages:
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Hi team! I'm Grok with permanent memory. Everything we talk about here is remembered for the whole team. Ask me anything! 🚀"}
+    ]
+    save_memory(st.session_state.messages)
+
+# ================== DISPLAY MESSAGES ==================
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# User input
-if prompt := st.chat_input("Ask Grok anything..."):
+# ================== USER INPUT ==================
+if prompt := st.chat_input("Ask Grok anything (team memory is active)..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Grok is thinking..."):
+        with st.spinner("Grok is thinking (using team memory)..."):
+            # Trim to last 20 messages for the API (keeps context safe)
+            recent_messages = st.session_state.messages[-20:]
+            
             try:
                 response = requests.post(
                     "https://api.x.ai/v1/chat/completions",
@@ -52,12 +65,12 @@ if prompt := st.chat_input("Ask Grok anything..."):
                         "Authorization": f"Bearer {api_key}"
                     },
                     json={
-                        "model": "grok-4.20-beta-latest-non-reasoning",
+                        "model": "grok-4.20-beta-0309-non-reasoning",   # Latest March 2026 model
                         "messages": [
-                            {"role": "system", "content": "You are Grok, built by xAI. Be maximally truthful, helpful, and a bit witty."}
-                        ] + st.session_state.messages
+                            {"role": "system", "content": "You are Grok, built by xAI. You have permanent memory of all previous team conversations. Be truthful, helpful, and witty."}
+                        ] + recent_messages
                     },
-                    timeout=60
+                    timeout=90
                 )
                 response.raise_for_status()
                 reply = response.json()["choices"][0]["message"]["content"]
@@ -66,8 +79,25 @@ if prompt := st.chat_input("Ask Grok anything..."):
                 st.markdown(reply)
                 
             except Exception as e:
-                error = f"❌ API error: {str(e)}\n\nCheck your key/quota at console.x.ai"
-                st.error(error)
-                st.session_state.messages.append({"role": "assistant", "content": error})
+                error_msg = f"❌ API error: {str(e)}"
+                st.error(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
-st.caption("Powered by xAI • Model: grok-4.20-beta-latest-non-reasoning")
+    # Save the updated team memory after every reply
+    save_memory(st.session_state.messages)
+
+# ================== SIDEBAR CONTROLS ==================
+with st.sidebar:
+    st.success("✅ Team memory is ON")
+    st.info(f"Total messages saved: {len(st.session_state.messages)}")
+    
+    if st.button("🗑️ Clear Team Memory", type="secondary"):
+        if st.checkbox("I understand this will delete ALL team history permanently"):
+            st.session_state.messages = [
+                {"role": "assistant", "content": "Team memory has been cleared. Starting fresh! 🚀"}
+            ]
+            save_memory(st.session_state.messages)
+            st.success("Team memory cleared!")
+            st.rerun()
+
+st.caption("Powered by xAI • Model: grok-4.20-beta-0309-non-reasoning • Shared team memory active")
