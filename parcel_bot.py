@@ -3,9 +3,9 @@ import requests
 import json
 import os
 
-st.set_page_config(page_title="Insurance Grok • Team", page_icon="🟦", layout="wide")
+st.set_page_config(page_title="Insurance Grok", page_icon="🟦", layout="wide")
 
-# ─── Custom CSS: Clean grok.com-inspired but sharp blue, white bg, no gradients ───
+# ─── Custom CSS ───
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap');
@@ -19,7 +19,7 @@ st.markdown("""
         max-width: 960px !important;
         padding: 1.5rem 1rem 5rem !important;
     }
-    .chat-container {
+    .chat-frame {
         background: white !important;
         border: 1px solid #0067c5 !important;
         border-radius: 12px !important;
@@ -34,15 +34,17 @@ st.markdown("""
     }
     .header h1 {
         margin: 0 !important;
-        font-size: 2.2rem !important;
-        font-weight: 600 !important;
+        font-size: 2.3rem !important;
+        font-weight: 700 !important;
         color: #0067c5 !important;
-        display: inline-flex !important;
+        display: flex !important;
         align-items: center !important;
-        gap: 0.6rem !important;
+        justify-content: center !important;
+        gap: 0.7rem !important;
     }
     .header .logo {
-        font-size: 2.4rem !important;
+        font-size: 2.6rem !important;
+        font-weight: bold !important;
         line-height: 1 !important;
     }
     .stChatMessage {
@@ -58,12 +60,12 @@ st.markdown("""
         margin-left: auto !important;
     }
     .assistant .stChatMessage {
-        background: #f5f5f5 !important;
+        background: #f8f9fa !important;
         color: #111111 !important;
         border: 1px solid #e0e0e0 !important;
     }
     .stChatInput > div > div {
-        background: white !important;
+        background: #ffffff !important;
         border: 1px solid #0067c5 !important;
         border-radius: 999px !important;
         padding: 0.4rem 1rem !important;
@@ -79,13 +81,6 @@ st.markdown("""
         height: 44px !important;
         margin-left: 8px !important;
     }
-    .sidebar-toggle {
-        background: #0067c5 !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 6px !important;
-        padding: 0.4rem 0.9rem !important;
-    }
     .caption {
         color: #555 !important;
         font-size: 0.82rem !important;
@@ -95,11 +90,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ─── Header: simple blue grok logo + title in blue ───
+# ─── Header ───
 st.markdown("""
     <div class="header">
         <h1>
-            <span class="logo">🟦</span> Insurance Grok Team
+            <span class="logo">G</span> Insurance Grok
         </h1>
         <p style="margin: 0.3rem 0 0; color: #555; font-size: 1rem;">
             Shared memory • Powered by xAI
@@ -107,14 +102,14 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# ─── API KEY FROM SECRETS ───
+# ─── API KEY ───
 api_key = st.secrets.get("XAI_API_KEY")
 if not api_key:
     st.error("No API key found. Add XAI_API_KEY in Streamlit Settings → Secrets.")
     st.stop()
 
-# ─── TEAM MEMORY ───
-MEMORY_FILE = "team_memory.json"
+# ─── MEMORY FILE ───
+MEMORY_FILE = "memory.json"
 
 def load_memory():
     if os.path.exists(MEMORY_FILE):
@@ -134,22 +129,20 @@ if "messages" not in st.session_state:
 
 if not st.session_state.messages:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Hello team — Insurance Grok here. Full memory active. How can I help with insurance today?"}
+        {"role": "assistant", "content": "Hello — Insurance Grok here. Memory active. How can I assist you today?"}
     ]
     save_memory(st.session_state.messages)
 
 if "current_session" not in st.session_state:
     st.session_state.current_session = []
 
-# ─── Minimal sidebar for history toggle ───
+# ─── Sidebar (minimal) ───
 with st.sidebar:
     st.markdown("<h4 style='color:#0067c5; margin-bottom:1rem;'>Options</h4>", unsafe_allow_html=True)
-    view_history = st.checkbox("View last 20 team messages", value=False,
-                               help="Show recent shared history. Leave unchecked for clean view.")
+    view_history = st.checkbox("Show last 20 messages", value=False)
 
-# ─── Chat display ───
-chat_container = st.container()
-with chat_container:
+# ─── Chat area ───
+with st.container():
     display_messages = []
     if view_history:
         display_messages = st.session_state.messages[-20:]
@@ -162,8 +155,8 @@ with chat_container:
     if not display_messages:
         st.markdown("""
             <div style="text-align:center; color:#777; padding:6rem 1rem;">
-                <h3 style="color:#333; margin-bottom:0.8rem;">Ready when you are</h3>
-                <p style="font-size:1.05rem;">Team memory is active. Ask anything.</p>
+                <h3 style="color:#222; margin-bottom:0.8rem;">Ready when you are</h3>
+                <p style="font-size:1.05rem;">Memory is active. Ask anything.</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -178,22 +171,22 @@ if prompt := st.chat_input("Ask Insurance Grok anything…"):
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking…"):
-            recent_for_api = st.session_state.messages[-20:]
+            recent = st.session_state.messages[-20:]
 
             try:
-                response = requests.post(
+                resp = requests.post(
                     "https://api.x.ai/v1/chat/completions",
                     headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
                     json={
                         "model": "grok-4.20-beta-0309-non-reasoning",
                         "messages": [
-                            {"role": "system", "content": "You are Insurance Grok by xAI. You help with insurance questions, claims, policies, coverage, and risk. Use full team memory context. Be clear, accurate, helpful and professional."}
-                        ] + recent_for_api
+                            {"role": "system", "content": "You are Insurance Grok by xAI. Specialize in insurance: policies, claims, coverage, underwriting, risk assessment. Be accurate, professional, clear. Use full conversation memory."}
+                        ] + recent
                     },
                     timeout=90
                 )
-                response.raise_for_status()
-                reply = response.json()["choices"][0]["message"]["content"]
+                resp.raise_for_status()
+                reply = resp.json()["choices"][0]["message"]["content"]
 
                 assistant_msg = {"role": "assistant", "content": reply}
                 st.session_state.messages.append(assistant_msg)
@@ -212,6 +205,6 @@ if prompt := st.chat_input("Ask Insurance Grok anything…"):
 # ─── Footer ───
 st.markdown("""
     <div class="caption">
-        Powered by xAI • Insurance Grok • Team memory active (hidden by default)
+        Powered by xAI • Insurance Grok • Memory active (hidden by default)
     </div>
 """, unsafe_allow_html=True)
