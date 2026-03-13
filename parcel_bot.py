@@ -3,112 +3,100 @@ import requests
 import json
 import os
 
-st.set_page_config(page_title="Insurance Grok", page_icon="🟦", layout="wide")
+st.set_page_config(page_title="Insurance Grok", page_icon="🔵", layout="wide")
 
-# ─── Custom CSS ───
+# ─── Minimal clean CSS ───
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600&display=swap');
 
     body, .stApp {
         background: #ffffff !important;
-        font-family: 'Segoe UI', system-ui, sans-serif !important;
         color: #111111 !important;
+        font-family: 'Segoe UI', sans-serif !important;
     }
     .main .block-container {
-        max-width: 960px !important;
-        padding: 1.5rem 1rem 5rem !important;
+        max-width: 900px !important;
+        padding: 2rem 1.5rem 4rem !important;
     }
-    .chat-frame {
+    .chat-area {
+        border: 1px solid #d0d0d0 !important;
+        border-radius: 10px !important;
         background: white !important;
-        border: 1px solid #0067c5 !important;
-        border-radius: 12px !important;
         overflow: hidden;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06) !important;
     }
-    .header {
-        padding: 1.4rem 2rem !important;
+    h1 {
+        font-size: 2.1rem !important;
+        font-weight: 600 !important;
+        color: #005a9e !important;
         text-align: center !important;
-        border-bottom: 1px solid #e0e0e0 !important;
-        background: white !important;
+        margin: 0 0 0.6rem 0 !important;
     }
-    .header h1 {
-        margin: 0 !important;
-        font-size: 2.3rem !important;
-        font-weight: 700 !important;
-        color: #0067c5 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 0.7rem !important;
-    }
-    .header .logo {
-        font-size: 2.6rem !important;
-        font-weight: bold !important;
-        line-height: 1 !important;
+    .subtitle {
+        color: #555 !important;
+        text-align: center !important;
+        font-size: 0.95rem !important;
+        margin-bottom: 1.5rem !important;
     }
     .stChatMessage {
-        border-radius: 16px !important;
-        padding: 14px 18px !important;
-        margin: 1.1rem 0 !important;
-        max-width: 80% !important;
-        box-shadow: 0 1px 6px rgba(0,0,0,0.08) !important;
+        border-radius: 14px !important;
+        padding: 12px 16px !important;
+        margin: 0.9rem 0 !important;
+        max-width: 78% !important;
     }
     .user .stChatMessage {
-        background: #0067c5 !important;
+        background: #005a9e !important;
         color: white !important;
         margin-left: auto !important;
     }
     .assistant .stChatMessage {
         background: #f8f9fa !important;
-        color: #111111 !important;
-        border: 1px solid #e0e0e0 !important;
+        color: #111 !important;
+        border: 1px solid #e5e5e5 !important;
     }
     .stChatInput > div > div {
         background: #ffffff !important;
-        border: 1px solid #0067c5 !important;
+        border: 1px solid #c0c0c0 !important;
         border-radius: 999px !important;
-        padding: 0.4rem 1rem !important;
+        padding: 0.3rem 0.9rem !important;
     }
     .stChatInput input {
-        color: #111111 !important;
+        color: #111 !important;
     }
     .stChatInput button {
-        background: #0067c5 !important;
+        background: #005a9e !important;
         color: white !important;
         border-radius: 50% !important;
-        width: 44px !important;
-        height: 44px !important;
-        margin-left: 8px !important;
+        width: 40px !important;
+        height: 40px !important;
+        margin-left: 6px !important;
     }
-    .caption {
-        color: #555 !important;
-        font-size: 0.82rem !important;
-        text-align: center !important;
-        margin-top: 2.5rem !important;
+    .placeholder {
+        text-align: center;
+        color: #777;
+        padding: 5rem 1rem;
+        font-size: 1.1rem;
+    }
+    .footer {
+        color: #666;
+        font-size: 0.8rem;
+        text-align: center;
+        margin-top: 2.5rem;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# ─── Header ───
-st.markdown("""
-    <div class="header">
-        <h1>
-            <span class="logo">G</span> Insurance Grok
-        </h1>
-        <p style="margin: 0.3rem 0 0; color: #555; font-size: 1rem;">
-            Shared memory • Powered by xAI
-        </p>
-    </div>
-""", unsafe_allow_html=True)
+# ─── Title ───
+st.markdown("<h1>Insurance Grok</h1>", unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Shared memory • Powered by xAI</div>', unsafe_allow_html=True)
 
-# ─── API KEY ───
+# ─── API Key check ───
 api_key = st.secrets.get("XAI_API_KEY")
 if not api_key:
-    st.error("No API key found. Add XAI_API_KEY in Streamlit Settings → Secrets.")
+    st.error("API key missing. Add XAI_API_KEY in Streamlit → Secrets.")
     st.stop()
 
-# ─── MEMORY FILE ───
+# ─── Memory ───
 MEMORY_FILE = "memory.json"
 
 def load_memory():
@@ -122,41 +110,41 @@ def load_memory():
 
 def save_memory(messages):
     with open(MEMORY_FILE, "w", encoding="utf-8") as f:
-        json.dump(messages, f, ensure_ascii=False, indent=2)
+        json.dump(messages, f, ensure_ascii=False, indent=None)
 
 if "messages" not in st.session_state:
     st.session_state.messages = load_memory()
 
 if not st.session_state.messages:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Hello — Insurance Grok here. Memory active. How can I assist you today?"}
+        {"role": "assistant", "content": "Hello — Insurance Grok here. Memory active. How can I assist?"}
     ]
     save_memory(st.session_state.messages)
 
 if "current_session" not in st.session_state:
     st.session_state.current_session = []
 
-# ─── Sidebar (minimal) ───
+# ─── Sidebar (very minimal) ───
 with st.sidebar:
-    st.markdown("<h4 style='color:#0067c5; margin-bottom:1rem;'>Options</h4>", unsafe_allow_html=True)
-    view_history = st.checkbox("Show last 20 messages", value=False)
+    st.markdown("**Options**")
+    show_recent = st.checkbox("Show last 20 messages", value=False)
 
-# ─── Chat area ───
+# ─── Chat content ───
 with st.container():
-    display_messages = []
-    if view_history:
-        display_messages = st.session_state.messages[-20:]
-    display_messages += st.session_state.current_session
+    messages_to_show = []
+    if show_recent:
+        messages_to_show = st.session_state.messages[-20:]
+    messages_to_show += st.session_state.current_session
 
-    for msg in display_messages:
+    for msg in messages_to_show:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    if not display_messages:
+    if not messages_to_show:
         st.markdown("""
-            <div style="text-align:center; color:#777; padding:6rem 1rem;">
-                <h3 style="color:#222; margin-bottom:0.8rem;">Ready when you are</h3>
-                <p style="font-size:1.05rem;">Memory is active. Ask anything.</p>
+            <div class="placeholder">
+                Ready when you are<br>
+                <span style="font-size:0.95rem;">Memory is active. Ask anything.</span>
             </div>
         """, unsafe_allow_html=True)
 
@@ -170,41 +158,37 @@ if prompt := st.chat_input("Ask Insurance Grok anything…"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Thinking…"):
-            recent = st.session_state.messages[-20:]
+        with st.spinner("…"):
+            recent_context = st.session_state.messages[-20:]
 
             try:
-                resp = requests.post(
+                r = requests.post(
                     "https://api.x.ai/v1/chat/completions",
                     headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
                     json={
                         "model": "grok-4.20-beta-0309-non-reasoning",
                         "messages": [
-                            {"role": "system", "content": "You are Insurance Grok by xAI. Specialize in insurance: policies, claims, coverage, underwriting, risk assessment. Be accurate, professional, clear. Use full conversation memory."}
-                        ] + recent
+                            {"role": "system", "content": "You are Insurance Grok by xAI. Focus on insurance topics: policies, claims, coverage, underwriting, risk. Be precise, professional, clear. Use full memory context."}
+                        ] + recent_context
                     },
-                    timeout=90
+                    timeout=80
                 )
-                resp.raise_for_status()
-                reply = resp.json()["choices"][0]["message"]["content"]
+                r.raise_for_status()
+                answer = r.json()["choices"][0]["message"]["content"]
 
-                assistant_msg = {"role": "assistant", "content": reply}
+                assistant_msg = {"role": "assistant", "content": answer}
                 st.session_state.messages.append(assistant_msg)
                 st.session_state.current_session.append(assistant_msg)
-                st.markdown(reply)
+                st.markdown(answer)
 
             except Exception as e:
-                error = f"Error: {str(e)}"
-                st.error(error)
-                err_msg = {"role": "assistant", "content": error}
+                err_text = f"Error: {str(e)}"
+                st.error(err_text)
+                err_msg = {"role": "assistant", "content": err_text}
                 st.session_state.messages.append(err_msg)
                 st.session_state.current_session.append(err_msg)
 
     save_memory(st.session_state.messages)
 
 # ─── Footer ───
-st.markdown("""
-    <div class="caption">
-        Powered by xAI • Insurance Grok • Memory active (hidden by default)
-    </div>
-""", unsafe_allow_html=True)
+st.markdown('<div class="footer">Powered by xAI • Insurance Grok • Memory active (hidden by default)</div>', unsafe_allow_html=True)
