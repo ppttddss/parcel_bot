@@ -5,16 +5,13 @@ import os
 
 st.set_page_config(page_title="Insurance Grok", layout="wide")
 
-# Pure black & white, no borders on input, larger placeholder
 st.markdown("""
     
 """, unsafe_allow_html=True)
 
-# Title
 st.markdown("<h1>Insurance Grok</h1>", unsafe_allow_html=True)
 
-# Simple checkbox below title (centered)
-show_hist = st.checkbox("Show last 20 messages", value=False, key="show_hist")
+show_hist = st.checkbox("Show last 20 messages", value=False)
 
 api_key = st.secrets.get("XAI_API_KEY")
 if not api_key:
@@ -42,11 +39,23 @@ if "messages" not in st.session_state:
         st.session_state.messages = [{"role": "assistant", "content": "Ready."}]
         save_memory(st.session_state.messages)
 
-# Display messages
-display_msgs = st.session_state.messages[-20:] if show_hist else st.session_state.messages
+# Key fix: only show messages when checkbox is checked
+if show_hist:
+    display_msgs = st.session_state.messages
+else:
+    display_msgs = []   # nothing shown when unchecked
+
 for msg in display_msgs:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+
+if not display_msgs:
+    st.markdown("""
+        <div style="text-align:center; color:#ffffff; padding:8rem 1rem; font-size:1.4rem;">
+            Ready when you are<br>
+            <span style="font-size:1.1rem; opacity:0.8;">Memory is active. Ask anything.</span>
+        </div>
+    """, unsafe_allow_html=True)
 
 if prompt := st.chat_input("Ask…"):
     st.session_state.messages.append({"role": "user", "content": prompt})
