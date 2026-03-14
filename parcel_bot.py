@@ -5,13 +5,15 @@ import os
 
 st.set_page_config(page_title="Insurance Grok", layout="wide")
 
+# Very minimal styling — no heavy overrides, just layout tweaks
 st.markdown("""
     
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>Insurance Grok</h1>", unsafe_allow_html=True)
+st.title("Insurance Grok")
 
-show_hist = st.checkbox("Show last 20 messages", value=False)
+# Checkbox (default = unchecked = hide conversations)
+show_hist = st.checkbox("Show last 20 messages", value=False, key="show_hist")
 
 api_key = st.secrets.get("XAI_API_KEY")
 if not api_key:
@@ -39,25 +41,21 @@ if "messages" not in st.session_state:
         st.session_state.messages = [{"role": "assistant", "content": "Ready."}]
         save_memory(st.session_state.messages)
 
-# Key fix: only show messages when checkbox is checked
+# Hide all previous messages by default
 if show_hist:
-    display_msgs = st.session_state.messages
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 else:
-    display_msgs = []   # nothing shown when unchecked
+    st.markdown(
+        '<div class="placeholder-text">Ready when you are.<br>'
+        '<span style="font-size:1.1rem;">Memory is active. Ask anything.</span></div>',
+        unsafe_allow_html=True
+    )
 
-for msg in display_msgs:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-if not display_msgs:
-    st.markdown("""
-        <div style="text-align:center; color:#ffffff; padding:8rem 1rem; font-size:1.4rem;">
-            Ready when you are<br>
-            <span style="font-size:1.1rem; opacity:0.8;">Memory is active. Ask anything.</span>
-        </div>
-    """, unsafe_allow_html=True)
-
+# Chat input
 if prompt := st.chat_input("Ask…"):
+    # Add new message even when history is hidden
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("user"):
